@@ -26,12 +26,12 @@ if((i >= 0 && j < 0) || (i < 0 && j >= 0)) {
 
 /**
  * Full list of comparison operators:
- *   ==
- *   !=
- *   >
- *   <
- *   >=
- *   <=
+ *   ==         is equal to
+ *   !=         is not equal to
+ *   >          is greater than
+ *   <          is less than
+ *   >=         is greater or equal to
+ *   <=         is less or equal to
  * Other tips:
  *   !A         not A
  *   A && B     A and B

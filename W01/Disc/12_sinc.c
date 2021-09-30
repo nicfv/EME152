@@ -10,7 +10,7 @@ int main()
     printf("  ---------------\n");
     x0 = -10.0;                /* initial value */
     xf = 10.0;                 /* final value */
-    xstep = 5.0;               /* step size */
+    xstep = 2.0;               /* step size */
     n = (xf - x0) / xstep + 1; /* numof points */
     for (i = 0; i < n; i++)
     {

@@ -5,7 +5,7 @@
 int main()
 {
     int width, height;
-    int i, j;
+    int y, x;
 
     printf("Please enter the width of the box: ");
     scanf("%d", &width);
@@ -13,12 +13,12 @@ int main()
     printf("Please enter the height of the box: ");
     scanf("%d", &height);
 
-    for (i = 0; i < height; i++)
+    for (y = 0; y < height; y++)
     {
-        for (j = 0; j < width; j++)
+        for (x = 0; x < width; x++)
         {
-            if ((j == 0 || j == (width - 1)) ||
-                (i == 0 || i == (height - 1)))
+            if ((x == 0 || x == (width - 1)) ||
+                (y == 0 || y == (height - 1)))
             {
                 printf("*");
             }

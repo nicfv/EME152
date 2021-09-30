@@ -23,7 +23,7 @@ int main() {
     scanf("%lf", &x);
 
     // Calculate y using the math.h functions
-    y = sin(x) + (5 * pow(x, 2) + x) / (2 * x);
+    y = sin(x) + ((5 * pow(x, 2) + x) / (2 * x));
 
     // Print the result
     printf("y(%lf) = %lf\n", x, y);

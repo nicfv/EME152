@@ -22,6 +22,7 @@ int main()
         {
             y = y0 + j * ystep; /* calculate value for y */
             r = sqrt(x * x + y * y);
+            // Add an if condition here to fix the bug
             result = sin(r) / r;
             printf("%10.4f %10.4f %8.4f\n", x, y, result);
         }

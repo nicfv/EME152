@@ -19,8 +19,8 @@ int main()
     }
     if (i < N)
     { /* number of iteration is less than N */
-        printf("sqrtx(%.2f) = %f\n", a, x2);
-        printf("sqrt(%.2f)  = %f\n", a, sqrt(a));
+        printf("sqrtx(%.2f) = %.10f\n", a, x2);
+        printf("sqrt(%.2f)  = %.10f\n", a, sqrt(a));
         printf("Number of iterations = %d\n", i);
     }
     else
