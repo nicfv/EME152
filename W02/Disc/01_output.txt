@@ -1,0 +1,2 @@
+Enter the mass (kg): Enter the accel. (m/s^2): 
+Force = 10.000000 N
