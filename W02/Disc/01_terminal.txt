@@ -1,1 +1,0 @@
-ch 01_force.ch < 01_input.txt > 01_output.txt

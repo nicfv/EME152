@@ -37,6 +37,7 @@ int main(void)
      * value of the function.
      */
     linearForce = Force(mass, acceleration);
+                // = (m * a)
 
     printf("\nForce = %lf N\n", linearForce);
 

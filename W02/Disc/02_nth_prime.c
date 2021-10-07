@@ -11,7 +11,7 @@ int main()
     printf("Which prime number do you wish to find? : ");
     scanf("%d", &n);
     printf("Calculating...\n");
-    for (i = 1; num_primes < n; i++)
+    for (i = 1; num_primes < n; i++) // i++ = i = i+1
     {
         /**
          * For each iteration, check whether i is prime. If it is, increment
@@ -35,10 +35,12 @@ int main()
 int is_prime(int num)
 {
     int i;
+    if(num == 1) { return 0; } // 1 is not prime
+    if(num == 2) { return 1; } // 2 is prime
     for (i = 2; i < (sqrt(num) + 1); i++)
     {
         if ((num % i) == 0)
-        { // If this is zero, then the number cannot be prime
+        { // If 'i' is a factor of num, then the number cannot be prime
             return 0;
         }
     }
