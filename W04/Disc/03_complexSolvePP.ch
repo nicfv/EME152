@@ -3,6 +3,12 @@
 #include <math.h>
 #include <complex.h>
 
+/**
+ * Solve the following equation for r1 and r2 (1 solution):
+ *
+ * r1 + r2*e^(i*45 deg) = 2 + i
+ */
+
 int main(void) {
     
     double phi1 = deg2rad(0.0),

@@ -3,6 +3,12 @@
 #include <math.h>
 #include <complex.h>
 
+/**
+ * Solve the following equation for r and theta (2 solutions):
+ *
+ * (1.8 + i*r)e^(i*theta) = 2 + i
+ */
+
 int main(void) {
     
     double a = 1.8,

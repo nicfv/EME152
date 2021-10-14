@@ -3,6 +3,12 @@
 #include <math.h>
 #include <complex.h>
 
+/**
+ * Solve the following equation for phi1 and phi2 (2 solutions):
+ *
+ * 2.0e^(i*phi1) + 2.5e^(i*phi2) = 2 + i
+ */
+
 int main(void) {
     
     double r1 = 2.0,
