@@ -6,7 +6,8 @@
 // Existing example of passing by reference:
 
 void square(int *d) {
-    *d = (*d) * (*d);
+    int num = *d;
+    *d = num * num;
 }
 
 int i = 5;
