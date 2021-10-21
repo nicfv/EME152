@@ -20,15 +20,17 @@ int main(void) {
     
     complex double Z = complex(2.0, 1.0);
     
-    complexsolveRR(r1, r2, Z, phi1_1, phi2_1, phi1_2, phi2_2);
+    int numSolutions = complexsolveRR(r1, r2, Z, phi1_1, phi2_1, phi1_2, phi2_2);
+    
+    printf("nSolutions = %d\n", numSolutions);
     
     printf("Solution 1:\n");
-    printf("phi1 = %lf rad\n", phi1_1);
-    printf("phi2 = %lf rad\n", phi2_1);
+    printf("phi1 = %lf deg\n", rad2deg(phi1_1));
+    printf("phi2 = %lf deg\n", rad2deg(phi2_1));
     
     printf("Solution 2:\n");
-    printf("phi1 = %lf rad\n", phi1_2);
-    printf("phi2 = %lf rad\n", phi2_2);
+    printf("phi1 = %lf deg\n", rad2deg(phi1_2));
+    printf("phi2 = %lf deg\n", rad2deg(phi2_2));
     
     return 0;
 }
