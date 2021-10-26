@@ -46,6 +46,7 @@ int main(void) {
     plot->title("Wrapped");
     plot->label(PLOT_AXIS_X, "Crank input: radians");
     plot->label(PLOT_AXIS_Y, "Rocker output: radians");
+    plot->sizeRatio(0.25);
     
     /* Set the parameters for the second plot */
     plot = subplot.getSubplot(1, 0);
@@ -53,6 +54,7 @@ int main(void) {
     plot->title("Unwrapped");
     plot->label(PLOT_AXIS_X, "Crank input: radians");
     plot->label(PLOT_AXIS_Y, "Rocker output: radians");
+    plot->sizeRatio(0.25);
     
     /* Tell Ch to render the plots as a subplot */
     subplot.plotting();
