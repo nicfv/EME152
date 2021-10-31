@@ -24,5 +24,11 @@ int main(void)
     printf("A=\n%.1lf\n", A);
     printf("x=\n%.1lf\n", x);
     printf("b=\n%.1lf\n", b);
+                 
+    double normalArray[2];
+    normalArray[0] = 1.0;
+    normalArray[1] = 2.0;
+    printf("normalArray=\n%.1lf\n", normalArray[0]);
+    printf("normalArray=\n%.1lf\n", normalArray[1]);
     return 0;
 }

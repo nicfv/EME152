@@ -6,20 +6,24 @@
 
 #include <math.h>   /* for pow() */
 #include <chplot.h> /* for plotxy() */
+#include <array.h>
 
 #define N 100       /* number of points for plotting */
 
 int main(void) {
     /* Declare variables for volume calculations */
     /* Not necessary to #include <array.h> since we are using primitive arrays */
-    double r[N], v[N], r0, rf;
+    array double r[N], v[N];
+    double r0, rf;
     double h; /* Cylinder height */
     int i;
 
     /* Set initial radius, final radius, and cylinder height */
-    r0 = 0.0;
+    r0 = 5.0;
     rf = 10.0;
-    h = 10.0;
+    
+    printf("What is the height of the cylinder? ");
+    scanf("%lf", &h);
 
     for(i = 0; i < N; i++) {                /* go through the loop N times */
         r[i] = r0 + i*(rf-r0) / (N-1);      /* linearly interpolate radius r[i] */

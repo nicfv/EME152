@@ -27,6 +27,11 @@ int main(void) {
     theta1 = deg2rad(30.0);
     linspace(theta2, 0, 2*M_PI);
 
+    // r1 + r4 = r2 + r3
+    // r4 - r3 = r2 - r1
+    // r3 - r4 = r1 - r2
+    //         = Z
+
     /* Calculate theta4_1 for each input angle */
     for(i = 0; i < N; i++) {
         Z = polar(r[1], theta1) - polar(r[2], theta2[i]);
