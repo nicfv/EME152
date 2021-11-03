@@ -1,0 +1,7 @@
+(b) 0b01101100
+(c) 0b01110111
+(e) 0b11111011 (assume binary two's complement notation)
+Answer:
+(b) 0154, 108, 0x6c
+(c) 0167, 119, 0x77
+(e) 0373, -5, 0xFB

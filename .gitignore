@@ -1,8 +1,14 @@
+# Folders to exclude
 Samples
+Answer-Key
 Videos
 Ignore
 Prof-Files
+
+# Auto-Generated Files
 .vscode
+
+# File types to exclude
 *.out
 *.gz
 *.tex

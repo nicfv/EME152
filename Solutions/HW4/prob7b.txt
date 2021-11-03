@@ -1,0 +1,2 @@
+phi1 =  0.5832 rad = 33.4155 deg, phi2 =  0.9016 rad = 51.6578 deg
+phi1 =  0.9876 rad = 56.5845 deg, phi2 =  0.6692 rad = 38.3422 deg
