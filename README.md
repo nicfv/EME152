@@ -10,3 +10,4 @@ Code samples and tutorials for EME152 (Computer Aided Mechanism Design) at UC Da
 1. [Ch Startup File/Demos](https://youtu.be/7KCIuYAzEYo)
 1. [Complex Equation Solver](https://youtu.be/h45Byeb9U2A)
 1. [Plotting/Solidworks](https://youtu.be/U548mSJ03kc) | [Supplement](https://youtu.be/cdcY7JBc_OI)
+1. [Grashof Criterion/CFourbar](https://youtu.be/tynhyKEDn8w)
