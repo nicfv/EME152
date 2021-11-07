@@ -1,0 +1,29 @@
+At 45 degrees, 
+branches = 2
+Circuit 1:
+theta3 = 19.634638
+theta4 = 109.432520
+theta5 = -11.129897
+r6 = 7.790135
+P = complex(2.632426,2.301831)
+
+Circuit 2:
+theta3 = -98.735229
+theta4 = 171.466889
+theta5 = 36.985943
+r6 = 4.435564
+P = complex(1.195465,-1.744731)
+
+Circuit 3:
+theta3 = 19.634638
+theta4 = 109.432520
+theta5 = -168.870103
+r6 = -0.059402
+P = complex(2.632426,2.301831)
+
+Circuit 4:
+theta3 = -98.735229
+theta4 = 171.466889
+theta5 = 143.014057
+r6 = -1.954701
+P = complex(1.195465,-1.744731)
