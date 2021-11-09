@@ -36,8 +36,8 @@ void exampleRR(double r1, double r2, complex double Z) {
 
 int main(void) {
     // Print the solutions to the equation R1e^(i45) + 3.0e^(i*theta2) = 1 + i2
-    examplePR(deg2rad(45.0), 3.0, complex(1.0, 2.0));
+    // examplePR(deg2rad(45.0), 3.0, complex(1.0, 2.0));
     // Print the solutions to the equation 2e^(i*theta1) + 3.5e^(i*theta2) = 3 - i
-    // exampleRR(2.0, 3.5, complex(3.0, -1.0));
+    exampleRR(2.0, 3.5, complex(3.0, -1.0));
     return 0;
 }
