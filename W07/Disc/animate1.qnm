@@ -1,0 +1,10 @@
+#qanimate animation data
+title "Slider Mechanism"
+fixture
+groundpin 0 0
+ground 4.639617 0.875000 5.139617 0.875000
+link 0 0 1.414214 1.414214 4.889617 1.000000\
+rectangle 4.639617 0.875000 0.500000 0.250000 angle 0.000000 pen red \
+polygon fill grey90 1.414214 1.414214 4.889617 1.000000 2.874562 1.756824 \
+point trace 2.874562 1.756824 \
+
