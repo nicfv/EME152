@@ -134,7 +134,7 @@ int main(void)
 
     fclose(fp);
 
-    qanimate animate1.qnm
+    qanimate animate2.qnm
     //remove("animate1.qnm");
 
     return 0;

@@ -4,7 +4,7 @@
 int main(void)
 {
     FILE *fp; /* This is a file pointer */
-    char c;   /* This is the current charater being read */
+    char c;   /* This is the current charater being written */
 
     /* Open a file for writing. If the file already exists,
      * it will be overwritten. */

@@ -1,0 +1,6 @@
+
+# Example animation file
+
+title "Animation Title"
+
+circle 30 30 20 pen red fill gray90
