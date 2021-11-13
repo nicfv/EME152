@@ -1,0 +1,11 @@
+First Solution:
+Theta3 = 1.514694 rad = 86.785589 deg
+Theta4 = 2.376906 rad = 136.186695 deg
+P = (0.287581 cm, 3.645962 cm)
+Gamma = 0.862212 rad = 49.401106 deg
+
+Second Solution:
+Theta3 = -1.585004 rad = -90.814052 deg
+Theta4 = -2.447216 rad = -140.215158 deg
+P = (2.633327 cm, -0.768391 cm)
+Gamma = 0.862212 rad = 49.401106 deg
