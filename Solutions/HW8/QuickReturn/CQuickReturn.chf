@@ -1,0 +1,1759 @@
+/************************************************************
+ * File name: CQuickReturn.chf
+ *            member functions of class CQuickReturn
+ ************************************************************/
+#include <quickreturn.h>
+
+void CQuickReturn::m_initialize(void) 
+{
+
+   /* defaults */
+   m_r[1]  = 0.025;            // length of link 1
+   m_r[2]  = 0.010;            // length of link 2
+   m_r[4]  = 0.065;            // length of link 4
+   m_r[5]  = 0.030;            // length of link 5
+   m_r[7]  = 0.050;            // length of link 10
+
+   m_theta[1]  = M_PI/2;       // angle of link 1
+   m_theta[6]  = 0;            // angle of link 9
+   m_theta[7]  = M_PI/2;       // angle of link 10
+
+   m_omega[2] = -15;           // input angular velocity
+
+   m_mass[2] = 0.8;            // mass of link 2 in kg
+   m_mass[3] = 0.3;            // mass of link 3 in kg
+   m_mass[4] = 2.4;            // mass of link 4 in kg
+   m_mass[5] = 1.4;            // mass of link 5 in kg
+   m_mass[6] = 0.3;            // mass of link 6 in kg
+   
+   m_inertia[2] = 0.012;       // mass inertia of link 2
+   m_inertia[4] = 0.119;       // mass inertia of link 4
+   m_inertia[5] = 0.038;       // mass inertia of link 5
+   
+   m_rg[2] = 0.0125;           // CG distance of link 2 in m
+   m_rg[4] = 0.0275;           // CG distance of link 4 in m
+   m_rg[5] = 0.0250;           // CG distance of link 5 in m
+   
+   m_delta[2] = 30*M_PI_180;   // phase angle for CG of link 2
+   m_delta[4] = 15*M_PI_180;   // phase angle for CG of link 4
+   m_delta[5] = 30*M_PI_180;   // phase angle for CG of link 5
+
+   m_load = -100;              // exeternal load on return slider
+
+   m_numpoints = 50;           // number of points for animation
+
+   m_uscunit = 0;              // selection SI units
+}
+
+/******************************************
+ * Constructor of class CQuickReturn
+ ******************************************/
+CQuickReturn::CQuickReturn() 
+{
+   m_initialize();
+}
+
+/******************************************
+ * Destructor of class CQuickReturn
+ ******************************************/
+CQuickReturn::~CQuickReturn() 
+{}
+
+/*******************************************************************
+ * setAngVel()
+ *
+ * Set angular velocity.
+ *
+ * Arguments: omega2 ... angular velocity of input link
+ *******************************************************************/
+void CQuickReturn::setAngVel(double omega2) 
+{
+   m_omega[2] = omega2;
+}
+
+/*********************************************************************
+ * setGravityCenter()
+ *
+ * Set the distances and offset angles for center of mass
+ * for each link.
+ *
+ * Arguments: rg2 ... distance to center of mass for link 2
+ *            rg4 ...    "     "    "    "    "   "    "  4
+ *            rg5 ...    "     "    "    "    "   "    "  5
+ *            delta2 ... anglular offset of center of mass for link 2
+ *            delta4 ...    "        "   "     "   "    "   "    "  4
+ *            delta5 ...    "        "   "     "   "    "   "    "  5
+ *********************************************************************/
+void CQuickReturn::setGravityCenter(double rg2, rg4, rg5, delta2, delta4, delta5)
+{
+
+   m_rg[2] = rg2;	     // CG distance of link 2 in m
+   m_rg[4] = rg4; 	     // CG distance of link 4 in m
+   m_rg[5] = rg5; 	     // CG distance of link 5 in m
+    
+   m_delta[2] = delta2;      // phase angle for CG of link 2
+   m_delta[4] = delta4;      // phase angle for CG of link 4
+   m_delta[5] = delta5;      // phase angle for CG of link 5
+
+   if(m_uscunit) 
+   { 
+      m_rg[2] *= M_FT2M;     // ft --> m
+      m_rg[4] *= M_FT2M;     // ft --> m
+      m_rg[5] *= M_FT2M;     // ft --> m
+   }
+}
+
+/***************************************************
+ * setInertia()
+ *
+ * Set the Moment of Inertia for each link.
+ *
+ * Arguments: ig2 ... Moment of Inertia for link 2
+ *            ig4 ...    "   "     "     "    "  4
+ *            ig5 ...    "   "     "     "    "  5
+ ***************************************************/
+void  CQuickReturn::setInertia(double ig2, ig4, ig5)
+{
+   m_inertia[2] = ig2;
+   m_inertia[4] = ig4;
+   m_inertia[5] = ig5;
+
+   if(m_uscunit)
+   {
+      m_inertia[2] *= M_LBFTSS2KGMM;     // lb-ft-s^2 --> kg-m^2
+      m_inertia[4] *= M_LBFTSS2KGMM;     // lb-ft-s^2 --> kg-m^2
+      m_inertia[5] *= M_LBFTSS2KGMM;     // lb-ft-s^2 --> kg-m^2
+   }
+}
+
+/***************************************************************
+ * setLinks()
+ *
+ * Set the Length for each link and angle between ground pins.
+ *
+ * Arguments: r1  ... length Link 1
+ *            r2  ...    "     "  2
+ *            r4  ...    "     "  4
+ *            r5  ...    "     "  5
+ *            r7  ...    "     "  7
+ *            theta 1 ... angle of Link 1
+ ***************************************************************/
+void CQuickReturn::setLinks(double r1, r2, r4, r5, r7, theta1)
+{
+   int characteristic;
+   // Check geometry input for values that will make the 
+   // mechanism not work
+   if((int)(1000000*r2) >= (int)(1000000*r1)) 
+   {
+      printf("r2 must be less than r1.\n"
+             "Try resetting the geometry and trying agian.\n\n");
+      exit(1);
+   }
+   if((int)(1000000*r4) < (int)(1000000*r1) + (int)(1000000*r2)) 
+   {
+      printf("r4 must be greater than r1 + r2.\n"
+             "Try resetting the geometry and trying agian.\n\n");
+      exit(1);
+   }
+   if((int)(1000000*r4) > (int)(1000000*r5) + (int)(1000000*abs(r7)))
+   {
+      printf("r4 must be less than r5 + r7.\n"
+             "Try resetting the geometry and trying agian.\n\n");
+      exit(1);
+   }
+
+   // If geometry valid assign parameters
+   m_r[1] = r1;
+   m_r[2] = r2;
+   m_r[4] = r4;
+   m_r[5] = r5;
+   m_r[7] = r7;
+   m_theta[1] = theta1;
+
+   if(m_uscunit)
+   {
+      m_r[1] *= M_FT2M;     // ft --> m
+      m_r[2] *= M_FT2M;     // ft --> m
+      m_r[4] *= M_FT2M;     // ft --> m
+      m_r[5] *= M_FT2M;     // ft --> m
+      m_r[7] *= M_FT2M;     // ft --> m
+   }
+}
+
+/******************************************
+ * setMass()
+ *
+ * Set the Mass for each link.
+ *
+ * Arguments: m2 ... mass of Link 2
+ *            m3 ...   "  "    "  3
+ *            m4 ...   "  "    "  4
+ *            m5 ...   "  "    "  5
+ *            m6 ...   "  "    "  6
+ ******************************************/
+void CQuickReturn::setMass(double m2, m3, m4, m5, m6)
+{
+   m_mass[2] = m2;
+   m_mass[3] = m3;
+   m_mass[4] = m4;
+   m_mass[5] = m5;
+   m_mass[6] = m6;
+
+   if(m_uscunit)
+   {
+      m_mass[2] *= M_SLUG2KG;     // slug --> kg
+      m_mass[3] *= M_SLUG2KG;     // slug --> kg
+      m_mass[4] *= M_SLUG2KG;     // slug --> kg
+      m_mass[5] *= M_SLUG2KG;     // slug --> kg
+      m_mass[6] *= M_SLUG2KG;     // slug --> kg
+   }
+}
+
+/*********************************************
+ * setForce()
+ *
+ * Set the external force on return slider.
+ *
+ * Arguments: fl ... exteral load on slider
+ *********************************************/
+void CQuickReturn::setForce(double fl)
+{
+   m_load = fl;
+
+   if(m_uscunit)
+   {
+      m_load *= M_LB2N;    // lb --> N
+   }
+}
+
+/*****************************************************
+ * setNumPoints()
+ *
+ * Set the number of points for calcs & animation.
+ *
+ * Arguments: numpoints ... number of points used
+ *****************************************************/
+void CQuickReturn::setNumPoints(int numpoints)
+{
+   m_numpoints = numpoints;
+}
+
+/******************************************
+ * uscUnit()
+ *
+ * Set the units preference.
+ *
+ * Arguments: unit ... true for USC units
+ *                     false for SI units
+ ******************************************/
+void CQuickReturn::uscUnit(bool unit)
+{
+   m_uscunit = unit;
+   if(m_uscunit)
+      printf("\n!! You're using ENGLISH UNITS !!\n\n");
+   else
+      printf("\n!! You're using SI UNITS !!\n\n");
+}
+
+/***************************************************************
+ * calcPosition()
+ *
+ * Computes the angular positions & 
+ * unknown lengths for a given angle of the driving link
+ * of the quick return mechanism. 
+ *
+ * Arguments: theta2 ... drive link positions
+ ***************************************************************/
+void CQuickReturn::calcPosition(double theta2)
+{
+
+   int n1, n2;
+   double temp1, temp2;
+   double complex z;
+
+   m_theta[2] = theta2;
+   // Solve First Loop: r1 + r2 = r3 -> r3 - r2 = r1
+   // z = r1
+   n1 = 1;
+   n2 = 2;
+   z = polar(m_r[1], m_theta[1]);
+   // find r3, theta4 
+   complexsolve(n1, n2, -m_r[2], m_theta[2], z, m_r[3], m_theta[4], temp1, temp2);
+
+   // Solve Second Loop: r4 + r5 = r6 + r7 ->  r6 - r5 = r4 - r7
+   // z = r4 - r7
+   n1 = 1;
+   n2 = 4;
+   z = polar(m_r[4], m_theta[4]) - polar(m_r[7], m_theta[7]);
+   // find r6, theta5
+   complexsolve(n1, n2, m_theta[6], -m_r[5], z, m_r[6], m_theta[5], temp1, temp2);
+
+   // Solve r8: r3 + r8 = r4 -> r8 = r4 - r3
+   m_r[8] = m_r[4] - m_r[3];
+}
+
+/************************************************
+ * calcVelocity()
+ *
+ * Computes the velocities for
+ * the quick return mechanism.
+ *
+ * Arguments: theta2 ... drive link positions
+ ************************************************/
+void CQuickReturn::calcVelocity(double theta2)
+{
+   calcPosition(theta2);
+
+   // omega4
+   m_omega[4] = (m_r[2]/m_r[3])*(cos(m_theta[2] - m_theta[4]))*m_omega[2];
+
+   // omega5
+   m_omega[5] = -(m_r[4]/m_r[5])*(cos(m_theta[4])/cos(m_theta[5]))*m_omega[4];
+
+   // velocity r7
+   m_r3_dot = m_r[2]*m_omega[2]*(sin(m_theta[4]-m_theta[2]));
+
+   // velocity r9
+   m_r6_dot = (m_r[4]*m_omega[4]*(sin(m_theta[5]-m_theta[4])))/(cos(m_theta[5]));
+
+   // Velocity of slider 3
+   m_v3 = I*polar((m_r[3]*m_omega[4]), m_theta[4]) + polar(m_r3_dot, m_theta[4]);
+}
+
+/***************************************************************
+ * calcAcceleration()
+ *
+ * Computes the accelerations for
+ * the quick return mechanism.
+ *
+ * Arguments: theta2 ... drive link positions
+ ***************************************************************/
+void CQuickReturn::calcAcceleration(double theta2)
+{
+   double a,b,c,d;
+   double complex w,x,y,z;
+
+   calcVelocity(theta2);
+
+   // alpha 4
+   a = -m_r[2]*m_omega[2]*m_omega[2]*(sin(m_theta[2] - m_theta[4]));
+   b = m_r[2]*m_alpha[2]*(cos(m_theta[2] - m_theta[4]));
+   c = -2*m_r3_dot*m_omega[4];
+   d = m_r[3];
+   m_alpha[4] = (a + b + c)/d;
+
+   // alpha 5
+   a = m_r[4]*m_omega[4]*m_omega[4]*(sin(m_theta[4]));
+   b = -m_r[4]*m_alpha[4]*(cos(m_theta[4]));
+   c = m_r[5]*m_omega[5]*m_omega[5]*(sin(m_theta[5]));
+   d = m_r[5]*(cos(m_theta[5]));
+   m_alpha[5] = (a + b + c)/d;
+
+   // acceleration r3
+   a = m_r[3]*m_omega[4]*m_omega[4];
+   b = -m_r[2]*m_omega[2]*m_omega[2]*(cos(m_theta[2] - m_theta[4]));
+   c = -m_r[2]*m_alpha[2]*(sin(m_theta[2] - m_theta[4]));
+   m_r3_double_dot = a + b + c;
+
+   // acceleration r6
+   a = -m_r[4]*m_omega[4]*m_omega[4]*(cos(m_theta[4]));
+   b = -m_r[4]*m_alpha[4]*(sin(m_theta[4]));
+   c = -m_r[5]*m_omega[5]*m_omega[5]*(cos(m_theta[5]));
+   d = -m_r[5]*m_alpha[5]*(sin(m_theta[5]));
+   m_r6_double_dot = a + b + c + d;
+
+   // Acceleration of slider 3
+   w = I*polar((m_r[3]*m_alpha[4]), m_theta[4]);
+   x = -polar((m_r[3]*m_omega[4]*m_omega[4]), m_theta[4]);
+   y = polar(m_r3_double_dot, m_theta[4]);
+   z = I*polar((2*m_r3_dot*m_omega[4]), m_theta[4]);
+   m_a3 = w + x + y + z;
+
+   // Acceleration of the Centers of Mass
+   x = I*polar((m_rg[2]*m_alpha[2]), (m_theta[2] + m_delta[2]));
+   y = polar((m_rg[2]*m_omega[2]*m_omega[2]), (m_theta[2] + m_delta[2]));
+   m_ag2 = x - y;
+
+   x = I*polar((m_rg[4]*m_alpha[4]), (m_theta[4] + m_delta[4]));
+   y = polar((m_rg[4]*m_omega[4]*m_omega[4]), (m_theta[4] + m_delta[4]));
+   m_ag4 = x - y;
+
+   w = I*polar((m_r[4]*m_alpha[4]), m_theta[4]);
+   x = polar((m_r[4]*m_omega[4]*m_omega[4]), m_theta[4]);
+   y = I*polar((m_rg[5]*m_alpha[5]), (m_theta[5] + m_delta[5]));
+   z = polar((m_rg[5]*m_omega[5]*m_omega[5]), (m_theta[5] + m_delta[5]));
+   m_ag5 = w - x + y - z;
+}
+
+/*********************************************************************************
+ * calcForce()
+ *
+ * Calculate force on links of quick return mechanism at a specific
+ * position of the input link.
+ *
+ * Arguments: theta2 ... drive link positions
+ *  x[13] = f12x,f12y,f23x,f23y,f14x,f14y,f34,f45x,f45y,f56x,f56y,f16y,Ts
+ *********************************************************************************/
+void CQuickReturn::calcForce(double theta2, array double x[13])
+{
+   array double B[13], A[13][13] = {0};
+   double fl = m_load;
+   double g = 9.81;     // m/s^2
+   double phi;
+   double fg2x, fg2y, fg3x, fg3y, fg4x, fg4y, fg5x, fg5y, fg6x, tg2, tg4, tg5;
+
+   if(m_uscunit)
+      fl *= M_LBFT2NM;     // lb-ft --> N-m
+
+   calcAcceleration(theta2);
+
+   phi = m_theta[4] - (M_PI/2);
+
+   fg2x = -m_mass[2]*real(m_ag2);
+   fg2y = -m_mass[2]*imag(m_ag2);
+   tg2 = -m_inertia[2]*m_alpha[2];
+
+   fg3x = -m_mass[3]*real(m_a3);
+   fg3y = -m_mass[3]*imag(m_a3);
+
+   fg4x = -m_mass[4]*real(m_ag4);
+   fg4y = -m_mass[4]*imag(m_ag4);
+   tg4 = -m_inertia[4]*m_alpha[4];
+
+   fg5x = -m_mass[5]*real(m_ag5);
+   fg5y = -m_mass[5]*imag(m_ag5);
+   tg5 = -m_inertia[5]*m_alpha[5];
+
+   fg6x = -m_mass[6]*m_r6_double_dot;
+
+   B[0] = fg2x;
+   B[1] = fg2y - m_mass[2]*g;
+   B[2] = tg2;
+   B[3] = fg3x;
+   B[4] = fg3y - m_mass[3]*g;
+   B[5] = fg4x;
+   B[6] = fg4y - m_mass[4]*g;
+   B[7] = tg4;
+   B[8] = fg5x;
+   B[9] = fg5y - m_mass[5]*g;
+   B[10] = tg5;
+   B[11] = fg6x + fl;
+   B[12] = -m_mass[6]*g;
+
+   A[0][0]   = -1;
+   A[0][2]   = 1;
+   A[1][1]   = -1;
+   A[1][3]   = 1;
+   A[2][0]   = -m_rg[2]*sin(m_theta[2] + m_delta[2]);
+   A[2][1]   = m_rg[2]*cos(m_theta[2] + m_delta[2]);
+   A[2][2]   = -(m_r[2]*sin(m_theta[2]) - m_rg[2]*sin(m_theta[2] + m_delta[2]));
+   A[2][3]   = m_r[2]*cos(m_theta[2]) - m_rg[2]*cos(m_theta[2] + m_delta[2]);
+   A[2][12]  = -1;
+   A[3][2]   = -1;
+   A[3][6]   = cos(phi);
+   A[4][3]   = -1;
+   A[4][6]   = sin(phi);
+   A[5][4]   = -1;
+   A[5][6]   = -cos(phi);
+   A[5][8]   = 1;
+   A[6][5]   = -1;
+   A[6][6]   = -sin(phi);
+   A[6][9]   = 1;
+   A[7][4]   = -m_rg[4]*sin(m_theta[4] + m_delta[4]);
+   A[7][5]   = m_rg[4]*cos(m_theta[4] + m_delta[4]);
+   A[7][6]   = ((m_r[3]*sin(m_theta[4]) - m_rg[4]*sin(m_theta[4] + m_delta[4]))
+               *(cos(phi))) 
+               - ((m_r[3]*cos(m_theta[4]) - m_rg[4]*cos(m_theta[4] + m_delta[4]))
+               *(sin(phi)));
+   A[7][7]   = -( m_r[4]*sin(m_theta[4]) - m_rg[4]*sin(m_theta[4] + m_delta[4]));
+   A[7][8]   = m_r[4]*cos(m_theta[4]) - m_rg[4]*cos(m_theta[4] + m_delta[4]);
+   A[8][7]   = -1;
+   A[8][9]   = 1;
+   A[9][8]   = -1;
+   A[9][10]  = 1;
+   A[10][7]  = -m_rg[5]*sin(m_theta[5] + m_delta[5]);
+   A[10][8]  = m_rg[5]*cos(m_theta[5] + m_delta[5]);
+   A[10][9]  = -(m_r[5]*sin(m_theta[5]) - m_rg[5]*sin(m_theta[5] + m_delta[5]));
+   A[10][10] = m_r[5]*cos(m_theta[5]) - m_rg[5]*cos(m_theta[5] + m_delta[5]);
+   A[11][9]  = -1;
+   A[12][10] = -1;
+   A[12][11] = -1;
+
+   x = inverse(A)*B;
+}
+
+/************************************************
+ * sliderPos()
+ *
+ * Return postion of slider for given theta2.
+ *
+ * Arguments: theta2 ... drive link positions
+ *
+ * Return value: slider position
+ ************************************************/
+double CQuickReturn::sliderPos(double theta2)
+{
+   calcPosition(theta2);
+
+   if(m_uscunit)
+   {
+      return (m_r[6] /= M_FT2M); // m --> ft
+   }
+   else
+   {
+      return m_r[6];
+   }
+}
+
+/*****************************************************
+ * sliderVel()
+ *
+ * Return Velocity of slider for given theta2.
+ *
+ * Arguments: theta2 ... drive link positions
+ *
+ * Return value: slider velocity
+ *****************************************************/
+double CQuickReturn::sliderVel(double theta2)
+{
+   calcVelocity(theta2);
+
+   if(m_uscunit)
+   {
+      return m_r6_dot /= M_FT2M; // m --> ft
+   }
+   else
+   {
+      return m_r6_dot;
+   }
+}
+
+/**********************************************************
+ * sliderAccel()
+ *
+ * Return Acceleration of slider for given theta2.
+ *
+ * Arguments: theta2 ... drive link positions
+ *
+ * Return value: slider acceleration
+ **********************************************************/
+double CQuickReturn::sliderAccel(double theta2)
+{
+   calcAcceleration(theta2);
+
+   if(m_uscunit)
+   {
+      return m_r6_double_dot /= M_FT2M; // m --> ft
+   }
+   else
+   {
+      return m_r6_double_dot;
+   }
+}
+
+/*******************************************************************
+ * sliderRange()
+ *
+ * Calculate the maximum and minimum distances
+ * that the slider travels.
+ *
+ * Arguments: max ... storage for maximum position of the range
+ *            min ... storage for minimum position of the range
+ *******************************************************************/
+void CQuickReturn::sliderRange(double& max, double& min)
+{
+   double max_pos=-100;
+   double min_pos=100;
+   double interval = 2*M_PI / (m_numpoints);
+   int i;
+
+   for(i=0; i<=m_numpoints; i++)
+   {
+      calcPosition(i*interval);
+      max_pos = (m_r[6] > max_pos) ? m_r[6] : max_pos;
+      min_pos = (m_r[6] < min_pos) ? m_r[6] : min_pos;
+   }
+   max = max_pos;
+   min = min_pos;
+
+   if(m_uscunit)
+   {
+      max /= M_FT2M;    // m --> ft
+      min /= M_FT2M;    // m --> ft
+   }
+}
+
+/**********************************************************
+ * getRequiredTorque()
+ *
+ * Return Torque needed at input link for given theta2.
+ *
+ * Arguments: theta2 ... drive link positions
+ *
+ * Return value: input torque
+ **********************************************************/
+double CQuickReturn::getRequiredTorque(double theta2)
+{
+   array double x[13];
+
+   calcForce(theta2, x);
+
+   if(m_uscunit)
+   {
+      return x[12] /= 1.355818991; // N-m --> lb-ft
+   }
+   else
+   {
+      return x[12];
+   }
+}
+
+/*****************************************************************
+ * getAngPos()
+ *
+ * Return angular position for given theta2 & link number.
+ *
+ * Arguments: theta2 ... drive link positions
+ *            link ... link angle desired
+ *
+ * Return value: theta for desired link
+ *****************************************************************/
+double CQuickReturn::getAngPos(double theta2, int link)
+{
+   double output;
+   calcPosition(theta2);
+
+   switch(link)
+   {
+      case QR_LINK_2:
+         output = m_theta[2];
+         break;
+      case QR_LINK_4:
+         output = m_theta[4];
+         break;
+      case QR_LINK_5:
+         output = m_theta[5];
+         break;
+   }
+   return output;
+}
+
+/*****************************************************************
+ * getAngVel()
+ *
+ * Return angular velocity for given theta2 & link number.
+ *
+ * Arguments: theta2 ... drive link positions
+ *            link ... link angular velocity desired
+ *
+ * Return value: omega for desired link
+ *****************************************************************/
+double CQuickReturn::getAngVel(double theta2, int link)
+{
+   double output;
+   calcVelocity(theta2);
+
+   switch(link)
+   {
+      case QR_LINK_2:
+         output = m_omega[2];
+         break;
+      case QR_LINK_4:
+         output = m_omega[4];
+         break;
+      case QR_LINK_5:
+         output = m_omega[5];
+         break;
+   }
+   return output;
+}
+
+/*****************************************************************
+ * getAngAccel()
+ *
+ * Return angular acceleration for given theta2 & link number.
+ *
+ * Arguments: theta2 ... drive link positions
+ *            link ... link angular acceleration desired
+ *
+ * Return value: alpha for desired link
+ *****************************************************************/
+double CQuickReturn::getAngAccel(double theta2, int link)
+{
+   double output;
+   calcAcceleration(theta2);
+
+   switch(link)
+   {
+      case QR_LINK_2:
+         output = m_alpha[2];
+         break;
+      case QR_LINK_4:
+         output = m_alpha[4];
+         break;
+      case QR_LINK_5:
+         output = m_alpha[5];
+         break;
+   }
+   return output;
+}
+
+/*****************************************************************
+ * getPointPos()
+ *
+ * Return position of a point for given theta2 & point number.
+ *
+ * Arguments: theta2 ... drive link positions
+ *            point ... point position desired
+ *
+ * Return value: position for desired point as complex number
+ *****************************************************************/
+double complex CQuickReturn::getPointPos(double theta2, int point)
+{
+   double complex output;
+   calcPosition(theta2);
+
+   switch(point)
+   {
+      case QR_POINT_A:
+         output = polar(m_r[3], m_theta[4]);
+         break;
+      case QR_POINT_B:
+         output = polar(m_r[4], m_theta[4]);
+         break;
+      case QR_LINK_2_CG:
+         output = polar(m_r[1], m_theta[1]) + polar(m_rg[2], m_theta[2]);
+         break;
+      case QR_LINK_4_CG:
+         output = polar(m_rg[4], m_theta[4]);
+         break;
+      case QR_LINK_5_CG:
+         output = polar(m_r[4], m_theta[4]) + polar(m_rg[5], m_theta[5]);
+         break;
+   }
+
+   if(m_uscunit)
+   {
+      output /= 0.304800609;    // m --> ft
+   }
+
+   return output;
+}
+
+/*****************************************************************
+ * getPointVel()
+ *
+ * Return velocity of a piont for given theta2 & point number.
+ *
+ * Arguments: theta2 ... drive link positions
+ *            point ... point velocity desired
+ *
+ * Return value: velocity for desired point as complex number
+ *****************************************************************/
+double complex CQuickReturn::getPointVel(double theta2, int point)
+{
+   double complex output, x, y;
+   calcVelocity(theta2);
+
+   switch(point)
+   {
+      case QR_POINT_A:
+         output = I*polar(m_r[3]*m_omega[4], m_theta[4]);
+         break;
+      case QR_POINT_B:
+         output = I*polar(m_r[4]*m_omega[4], m_theta[4]);
+         break;
+      case QR_LINK_2_CG:
+         output = I*polar(m_rg[2]*m_omega[2], m_theta[2]);
+         break;
+      case QR_LINK_4_CG:
+         output = I*polar(m_rg[4]*m_omega[4], m_theta[4]);
+         break;
+      case QR_LINK_5_CG:
+         x = I*polar(m_r[4]*m_omega[4], m_theta[4]);
+         y = I*polar(m_rg[5]*m_omega[5], m_theta[5]);
+         output = x + y;
+         break;
+   }
+
+   if(m_uscunit)
+   {
+      output /= 0.304800609;    // m --> ft
+   }
+
+   return output;
+}
+
+/********************************************************************
+ * getPointAccel()
+ *
+ * Return acceleration of a point for given theta2 & point number.
+ *
+ * Arguments: theta2 ... drive link positions
+ *            point ... point acceleration desired
+ *
+ * Return value: acceleration for desired point as complex number
+ ********************************************************************/
+double complex CQuickReturn::getPointAccel(double theta2, int point)
+{
+   double complex output, x, y;
+   calcAcceleration(theta2);
+
+   switch(point)
+   {
+      case QR_POINT_A:
+         x = I*polar((m_r[2]*m_alpha[2]), m_theta[2]);
+         y = -polar((m_r[2]*m_omega[2]*m_omega[2]), m_theta[2]);
+         output = x + y;
+         break;
+      case QR_POINT_B:
+         x = I*polar((m_r[4]*m_alpha[4]), m_theta[4]);
+         y = -polar((m_r[4]*m_omega[4]*m_omega[4]), m_theta[4]);
+         output = x + y;
+         break;
+      case QR_LINK_2_CG:
+         output = m_ag2;
+         break;
+      case QR_LINK_4_CG:
+         output = m_ag4;
+         break;
+      case QR_LINK_5_CG:
+         output = m_ag5;
+         break;
+   }
+
+   if(m_uscunit)
+   {
+      output /= 0.304800609;    // m --> ft
+   }
+
+   return output;
+}
+
+/******************************************************************************
+ * getForces()
+ *
+ * Calculates internal forces of mechanism at a give angle
+ * of the input link.
+ *
+ * Arguments: theta2 ... drive link positions
+ *  y[13] = f12x,f12y,f23x,f23y,f14x,f14y,f34x,f34y,f45x,f45y,f56x,f56y,f16y
+ ******************************************************************************/
+void CQuickReturn::getForces(double theta2, array double y[12])
+{
+   int i;
+   array double x[13];
+
+   calcForce(theta2, x);
+
+   for(i = 0; i < 12; i++)
+   {
+      y[i] = x[i];
+   }
+
+   if(m_uscunit)
+   {
+      y /= 4.448221615;  // N --> lb
+   }
+}
+
+/**************************************************************
+ * plotSliderPos()
+ *
+ * Plot slider position as function of time.
+ *
+ * Arguments: *plot ... pointer to plot defined
+ *                      in the calling program
+ ***************************************************************/
+void CQuickReturn::plotSliderPos(CPlot *plot)
+{
+   int i;
+   double increment;
+   string_t  xlabel, ylabel, title;
+   array double time[m_numpoints + 1], Position[m_numpoints + 1];
+
+   increment = 2*M_PI/m_numpoints;
+   if(m_omega[2] < 0)
+      increment = -increment;
+
+   for(i = 0; i <= m_numpoints; i++)
+   {
+      time[i] = (i*increment/m_omega[2]);
+      Position[i] = sliderPos(i*increment);
+   }
+
+   title = "Slider Position vs. Time"; xlabel = "time (s)";
+
+   if(m_uscunit)
+   {
+      ylabel = "Position (ft)";
+   }
+   else
+   {
+      ylabel = "Position (m)";
+   }
+
+   plotxy(time, Position, title, xlabel, ylabel, plot);
+   plot->plotting();
+}
+
+/**********************************************************
+ * plotSliderVel()
+ *
+ * Plot slider velocity as function of time.
+ *
+ * Arguments: *plot ... pointer to plot defined
+ *                      in the calling program
+ **********************************************************/
+void CQuickReturn::plotSliderVel(CPlot *plot)
+{
+   int i;
+   double increment;
+   string_t  xlabel, ylabel, title;
+   array double time[m_numpoints + 1], Velocity[m_numpoints + 1];
+
+   increment = 2*M_PI/m_numpoints;
+   if(m_omega[2] < 0)
+      increment = -increment;
+
+   for(i = 0; i <= m_numpoints; i++)
+   {
+      time[i] = (i*increment/m_omega[2]);
+      Velocity[i] = sliderVel(i*increment);
+   }
+   title = "Slider Velocity vs. Time"; xlabel = "time (s)";
+
+   if(m_uscunit)
+   {
+      ylabel = "Velocity (ft/s)";
+   }
+   else
+   {
+      ylabel = "Velocity (m/s)";
+   }
+
+   plotxy(time, Velocity, title, xlabel, ylabel, plot);
+   plot->plotting();
+}
+
+/**********************************************************
+ * plotSliderAccel()
+ *
+ * Plot slider acceleraion as function of time.
+ *
+ * Arguments: *plot ... pointer to plot defined
+ *                      in the calling program
+ **********************************************************/
+void CQuickReturn::plotSliderAccel(CPlot *plot)
+{
+   int i;
+   double increment;
+   string_t  xlabel, ylabel, title;
+   array double time[m_numpoints + 1], Acceleration[m_numpoints + 1];
+
+   increment = 2*M_PI/m_numpoints;
+   if(m_omega[2] < 0)
+      increment = -increment;
+
+   for(i = 0; i <= m_numpoints; i++)
+   {
+      time[i] = (i*increment/m_omega[2]);
+      Acceleration[i] = sliderAccel(i*increment);
+   }
+   title = "Slider Acceleration vs. Time"; xlabel = "time (s)";
+
+   if(m_uscunit)
+   {
+      ylabel = "Acceleration (ft/s^2)";
+   }
+   else
+   {
+      ylabel = "Acceleration (m/s^2)";
+   }
+
+   plotxy(time, Acceleration, title, xlabel, ylabel, plot);
+   plot->plotting();
+}
+
+/***************************************************************
+ * plotAngPos()
+ *
+ * Plot angular position of links 4 & 5 as function of time.
+ *
+ * Arguments: *plot ... pointer to plot defined
+ *                      in the calling program
+ ***************************************************************/
+void CQuickReturn::plotAngPos(CPlot *plot)
+{
+   int i;
+   double increment;
+   string_t  xlabel, ylabel, title;
+   array double time[m_numpoints + 1];
+   array double Theta4[m_numpoints + 1], Theta5[m_numpoints + 1];
+
+   increment = 2*M_PI/m_numpoints;
+   if(m_omega[2] < 0)
+      increment = -increment;
+
+   for(i = 0; i <= m_numpoints; i++)
+   {
+      calcPosition(i*increment);
+      time[i] = (i*increment/m_omega[2]);
+      Theta4[i] = m_theta[4];
+      Theta5[i] = m_theta[5];
+   }
+   title = "Theta 4 vs. Time"; xlabel = "time (s)"; ylabel = "Theta 4 (rad)";
+   plotxy(time, Theta4, title, xlabel, ylabel, plot);
+   plot->plotting();
+
+   title = "Theta 5 vs. Time"; xlabel = "time (s)"; ylabel = "Theta 5 (rad)";
+   plotxy(time, Theta5, title, xlabel, ylabel, plot);
+   plot->plotting();
+}
+
+/***************************************************************
+ * plotAngVel()
+ *
+ * Plot angular velocity of links 4 & 5 as function of time.
+ *
+ * Arguments: *plot ... pointer to plot defined
+ *                      in the calling program
+ ***************************************************************/
+void CQuickReturn::plotAngVel(CPlot *plot)
+{
+   int i;
+   double increment;
+   string_t  xlabel, ylabel, title;
+   array double time[m_numpoints + 1];
+   array double Omega4[m_numpoints + 1], Omega5[m_numpoints + 1];
+
+   increment = 2*M_PI/m_numpoints;
+   if(m_omega[2] < 0)
+      increment = -increment;
+
+   for(i = 0; i <= m_numpoints; i++)
+   {
+      calcVelocity(i*increment);
+      time[i] = (i*increment/m_omega[2]);
+      Omega4[i] = m_omega[4];
+      Omega5[i] = m_omega[5];
+   }
+   title = "Omega 4 vs. Time"; xlabel = "time (s)"; ylabel = "Omega 4 (rad/s)";
+   plotxy(time, Omega4, title, xlabel, ylabel, plot);
+   plot->plotting();
+
+   title = "Omega 5 vs. Time"; xlabel = "time (s)"; ylabel = "Omega 5 (rad/s)";
+   plotxy(time, Omega5, title, xlabel, ylabel, plot);
+   plot->plotting();
+}
+
+/********************************************************************
+ * plotAngAccel()
+ *
+ * Plot angular acceleration of links 4 & 5 as function of time.
+ *
+ * Arguments: *plot ... pointer to plot defined
+ *                      in the calling program
+ ********************************************************************/
+void CQuickReturn::plotAngAccel(CPlot *plot)
+{
+   int i;
+   double increment;
+   string_t  xlabel, ylabel, title;
+   array double time[m_numpoints + 1];
+   array double Alpha4[m_numpoints + 1], Alpha5[m_numpoints + 1];
+
+   increment = 2*M_PI/m_numpoints;
+   if(m_omega[2] < 0)
+      increment = -increment;
+
+   for(i = 0; i <= m_numpoints; i++)
+   {
+      calcAcceleration(i*increment);
+      time[i] = (i*increment/m_omega[2]);
+      Alpha4[i] = m_alpha[4];
+      Alpha5[i] = m_alpha[5];
+   }
+   title = "Alpha 4 vs. Time"; xlabel = "time (s)"; ylabel = "Alpha 4 (rad/s^2)";
+   plotxy(time, Alpha4, title, xlabel, ylabel, plot);
+   plot->plotting();
+
+   title = "Alpha 5 vs. Time"; xlabel = "time (s)"; ylabel = "Alpha 5 (rad/s^2)";
+   plotxy(time, Alpha5, title, xlabel, ylabel, plot);
+   plot->plotting();
+}
+
+/***************************************************************
+ * plotCGaccel()
+ *
+ * Plot acceleration of centers of mass for links 2, 4, & 5
+ * as functions of time for X & Y components of acceleration
+ * and magnitude of acceleration.
+ *
+ * Arguments: *plot ... pointer to plot defined
+ *                      in the calling program
+ ***************************************************************/
+void CQuickReturn::plotCGaccel(CPlot *plot)
+{
+   int i;
+   double increment;
+   string_t  xlabel, ylabel, title;
+   array double time[m_numpoints + 1];
+   array double complex ag2[m_numpoints + 1], ag4[m_numpoints + 1];
+   array double complex ag5[m_numpoints + 1], mag_ag[m_numpoints + 1];
+
+   increment = 2*M_PI/m_numpoints;
+   if(m_omega[2] < 0)
+      increment = -increment;
+
+   for(i = 0; i <= m_numpoints; i++)
+   {
+      calcAcceleration(i*increment);
+      time[i] = (i*increment/m_omega[2]);
+      ag2[i] = m_ag2;
+      ag4[i] = m_ag4;
+      ag5[i] = m_ag5;
+   }
+
+   if(m_uscunit)
+   {
+      ag2 /= 0.304800609;  // m --> ft
+      ag4 /= 0.304800609;  // m --> ft
+      ag5 /= 0.304800609;  // m --> ft
+   }
+
+   title = "Ag2x vs. Time"; xlabel = "time (s)";
+   if(m_uscunit)
+      ylabel = "Ag2x (ft/s^2)";
+   else
+      ylabel = "Ag2x (m/s^2)";
+   plotxy(time, real(ag2), title, xlabel, ylabel,plot);
+   plot->plotting();
+
+   title = "Ag2y vs. Time"; xlabel = "time (s)";
+   if(m_uscunit)
+      ylabel = "Ag2y (ft/s^2)";
+   else
+      ylabel = "Ag2y (m/s^2)";
+   plotxy(time, imag(ag2), title, xlabel, ylabel, plot);
+   plot->plotting();
+
+   title = "Magnitude of Ag2 vs. Time"; xlabel = "time (s)";
+   if(m_uscunit)
+      ylabel = "Ag2 (ft/s^2)";
+   else
+      ylabel = "Ag2 (m/s^2)";
+   mag_ag = abs(ag2);
+   plotxy(time, mag_ag, title, xlabel, ylabel, plot);
+   plot->plotting();
+
+   title = "Ag4x vs. Time"; xlabel = "time (s)";
+   if(m_uscunit)
+      ylabel = "Ag4x (ft/s^2)";
+   else
+      ylabel = "Ag4x (m/s^2)";
+   plotxy(time, real(ag4), title, xlabel, ylabel, plot);
+   plot->plotting();
+
+   title = "Ag4y vs. Time"; xlabel = "time (s)";
+   if(m_uscunit)
+      ylabel = "Ag4y (ft/s^2)";
+   else
+      ylabel = "Ag4y (m/s^2)";
+   plotxy(time, imag(ag4), title, xlabel, ylabel, plot);
+   plot->plotting();
+
+   title = "Magnitude of Ag4 vs. Time"; xlabel = "time (s)";
+   if(m_uscunit)
+      ylabel = "Ag4 (ft/s^2)";
+   else
+      ylabel = "Ag4 (m/s^2)";
+   mag_ag = abs(ag4);
+   plotxy(time, mag_ag, title, xlabel, ylabel, plot);
+   plot->plotting();
+
+   title = "Ag5x vs. Time"; xlabel = "time (s)";
+   if(m_uscunit)
+      ylabel = "Ag5x (ft/s^2)";
+   else
+      ylabel = "Ag5x (m/s^2)";
+   plotxy(time, real(ag5), title, xlabel, ylabel, plot);
+   plot->plotting();
+
+   title = "Ag5y vs. Time"; xlabel = "time (s)";
+   if(m_uscunit)
+      ylabel = "Ag5y (ft/s^2)";
+   else
+      ylabel = "Ag5y (m/s^2)";
+   plotxy(time, imag(ag5), title, xlabel, ylabel, plot);
+   plot->plotting();
+
+   title = "Magnitude of Ag5 vs. Time"; xlabel = "time (s)";
+   if(m_uscunit)
+      ylabel = "Ag5 (ft/s^2)";
+   else
+      ylabel = "Ag5 (m/s^2)";
+   mag_ag = abs(ag5);
+   plotxy(time, mag_ag, title, xlabel, ylabel, plot);
+   plot->plotting();
+}
+
+/***************************************************************
+ * plotForce()
+ *
+ * Plot specified internal force of quick return
+ * mechanism as function of time.
+ *
+ * Arguments: plot_output  ... specifies which forces to plot
+ *            *plot        ... pointer to plot defined
+ *                             in the calling program
+ ***************************************************************/
+void CQuickReturn::plotForce(int plot_output, CPlot *plot)
+{
+   int i;
+   double increment;
+   string_t  xlabel, ylabel, title;
+   array double time[m_numpoints + 1], Forces[12][m_numpoints + 1];
+   array double F_array[13], (*F_plot)[:];
+   array double complex F_mag[1][m_numpoints + 1];
+
+   increment = 2*M_PI/m_numpoints;
+   if(m_omega[2] < 0)
+      increment = -increment;
+
+   for(i = 0; i <= m_numpoints; i++)
+   {
+      // time for constant omega
+      time[i] = (i*increment/m_omega[2]);
+      calcForce(i*increment, F_array);
+      Forces[0][i] = F_array[0];
+      Forces[1][i] = F_array[1];
+      Forces[2][i] = F_array[2];
+      Forces[3][i] = F_array[3];
+      Forces[4][i] = F_array[4];
+      Forces[5][i] = F_array[5];
+      Forces[6][i] = F_array[6];
+      Forces[7][i] = F_array[7];
+      Forces[8][i] = F_array[8];
+      Forces[9][i] = F_array[9];
+      Forces[10][i] = F_array[10];
+      Forces[11][i] = F_array[11];
+   }
+
+   if(m_uscunit)
+      Forces /= 4.448221615; // N --> lb
+
+// F12 Plots 
+   F_plot = (array double [:][:])(double [1][m_numpoints + 1])&Forces[0][0];
+   real(F_mag) = F_plot;
+   if(plot_output & F12X)
+   {
+      title = "F12 x vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F12 x (lbs)";
+      else
+         ylabel = "F12 x (N)";
+      plotxy(time, F_plot, title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+
+   F_plot = (array double [:][:])(double [1][m_numpoints + 1])&Forces[1][0];
+   imag(F_mag) = F_plot;
+   if(plot_output & F12Y)
+   {
+      title = "F12 y vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F12 y (lbs)";
+      else
+         ylabel = "F12 y (N)";
+      plotxy(time, F_plot, title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+
+   if(plot_output & MAG_F12)
+   {
+      title = "Magnitude F12 vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F12 (lbs)";
+      else
+         ylabel = "F12 (N)";
+      plotxy(time, abs(F_mag), title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+
+// F23 Plots
+   F_plot = (array double [:][:])(double [1][m_numpoints + 1])&Forces[2][0];
+   real(F_mag) = F_plot;
+   if(plot_output & F23X)
+   {
+      title = "F23 x vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F23 x (lbs)";
+      else
+         ylabel = "F23 x (N)";
+      plotxy(time, F_plot, title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+
+   F_plot = (array double [:][:])(double [1][m_numpoints + 1])&Forces[3][0];
+   imag(F_mag) = F_plot;
+   if(plot_output & F23Y)
+   {
+      title = "F23 y vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F23 y (lbs)";
+      else
+         ylabel = "F23 y (N)";
+      plotxy(time, F_plot, title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+
+   if(plot_output & MAG_F23)
+   {
+      title = "Magnitude F23 vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F23 (lbs)";
+      else
+         ylabel = "F23 (N)";
+      plotxy(time, abs(F_mag), title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+
+// F14 Plots
+   F_plot = (array double [:][:])(double [1][m_numpoints + 1])&Forces[4][0];
+   real(F_mag) = F_plot;
+   if(plot_output & F14X)
+   {
+      title = "F14 x vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F14 x (lbs)";
+      else
+         ylabel = "F14 x (N)";
+      plotxy(time, F_plot, title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+
+   F_plot = (array double [:][:])(double [1][m_numpoints + 1])&Forces[5][0];
+   imag(F_mag) = F_plot;
+   if(plot_output & F14Y)
+   {
+      title = "F14 y vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F14 y (lbs)";
+      else
+         ylabel = "F14 y (N)";
+      plotxy(time, F_plot, title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+
+   if(plot_output & MAG_F14)
+   {
+      title = "Magnitude F14 vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F14 (lbs)";
+      else
+         ylabel = "F14 (N)";
+      plotxy(time, abs(F_mag), title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+
+// F34 Plots
+   F_plot = (array double [:][:])(double [1][m_numpoints + 1])&Forces[6][0];
+   if(plot_output & MAG_F34)
+   {
+      title = "Magnitude F34 vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F34 (lbs)";
+      else
+         ylabel = "F34 (N)";
+      plotxy(time, F_plot, title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+
+// F45 Plots
+   F_plot = (array double [:][:])(double [1][m_numpoints + 1])&Forces[7][0];
+   real(F_mag) = F_plot;
+   if(plot_output & F45X)
+   {
+      title = "F45 x vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F45 x (lbs)";
+      else
+         ylabel = "F45 x (N)";
+      plotxy(time, F_plot, title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+
+   F_plot = (array double [:][:])(double [1][m_numpoints + 1])&Forces[8][0];
+   imag(F_mag) = F_plot;
+   if(plot_output & F45Y)
+   {
+      title = "F45 y vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F45 y (lbs)";
+      else
+         ylabel = "F45 y (N)";
+      plotxy(time, F_plot, title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+
+   if(plot_output & MAG_F45)
+   {
+      title = "Magnitude F45 vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F45 (lbs)";
+      else
+         ylabel = "F45 (N)";
+      plotxy(time, abs(F_mag), title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+
+// F56 Plots
+   F_plot = (array double [:][:])(double [1][m_numpoints + 1])&Forces[9][0];
+   real(F_mag) = F_plot;
+   if(plot_output & F56X)
+   {
+      title = "F56 x vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F56 x (lbs)";
+      else
+         ylabel = "F56 x (N)";
+      plotxy(time, F_plot, title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+
+   F_plot = (array double [:][:])(double [1][m_numpoints + 1])&Forces[10][0];
+   imag(F_mag) = F_plot;
+   if(plot_output & F56Y)
+   {
+      title = "F56 y vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F56 y (lbs)";
+      else
+         ylabel = "F56 y (N)";
+      plotxy(time, F_plot, title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+
+   if(plot_output & MAG_F56)
+   {
+      title = "Magnitude F56 vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F56 (lbs)";
+      else
+         ylabel = "F56 (N)";
+      plotxy(time, abs(F_mag), title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+
+// F16 Plots
+   F_plot = (array double [:][:])(double [1][m_numpoints + 1])&Forces[11][0];
+   if(plot_output & F16Y)
+   {
+      title = "F16 y vs. Time"; xlabel = "time (s)";
+      if(m_uscunit)
+         ylabel = "F16 y (lbs)";
+      else
+         ylabel = "F16 y (N)";
+      plotxy(time, F_plot, title, xlabel, ylabel, plot);
+      plot->plotting();
+   }
+}
+
+/***************************************************************
+ * plotTorque()
+ *
+ * Plot input torque to the quick return mechanism
+ * as function of time.
+ *
+ * Arguments: *plot ... pointer to plot defined
+ *                      in the calling program
+ ***************************************************************/
+void CQuickReturn::plotTorque(CPlot *plot)
+{
+   int i;
+   double increment;
+   string_t  xlabel, ylabel, title;
+   array double time[m_numpoints + 1], Ts[m_numpoints + 1];
+
+   increment = 2*M_PI/m_numpoints;
+   if(m_omega[2] < 0)
+      increment = -increment;
+
+   for(i = 0; i <= m_numpoints; i++)
+   {
+      // time for constant omega
+      time[i] = (i*increment/m_omega[2]);
+      Ts[i] = getRequiredTorque(i*increment);
+   }
+
+   title = "Input Torque vs. Time"; xlabel = "time (s)";
+   if(m_uscunit)
+      ylabel = "Torque (ft-lb)";
+   else
+      ylabel = "Torque (N-m)";
+   plotxy(time, Ts, title, xlabel, ylabel, plot);
+   plot->plotting();
+}
+
+/***************************************************************
+ * displayPosition() 
+ *
+ * This function will write a file that can be run with
+ * qanimate to display the configuration of the mechanism.
+ *
+ * Arguments: theta2 ... determines the configuration 
+ ***************************************************************/
+void CQuickReturn::displayPosition(double theta2, ...)
+{
+   complex R[1:8];
+   double sliderlength = m_r[4] / 8;
+   double sliderwidth = sliderlength / 2;
+   char *QnmFileName;
+   FILE *positionpipe;
+   int outputType = QANIMATE_OUTPUTTYPE_DISPLAY; // default display
+   va_list ap;
+   int vacount;
+
+   va_start(ap, theta2);
+   vacount = va_count(ap);
+   if(vacount > 0)
+      outputType = va_arg(ap, int);
+   if(outputType == QANIMATE_OUTPUTTYPE_STREAM)
+      positionpipe = stdout; 
+   else
+   {
+      if(outputType == QANIMATE_OUTPUTTYPE_FILE)
+         QnmFileName = va_arg(ap, char*);
+      else
+         QnmFileName = tempnam("C:/Windows/temp", NULL);
+      // Try to open output file
+      if(!(positionpipe = fopen(QnmFileName, "w")))
+      {
+         fprintf(stderr, "displayPosition(): unable to open output file '%s'\n", QnmFileName); 
+         return;
+      }
+   }
+   va_end(ap);
+
+   // Call calcPosition() to calculate everything
+   calcPosition(theta2);
+
+   // Create complex to make it easier to use
+   R[1] = polar(m_r[1], m_theta[1]);
+   R[2] = R[1] + polar(m_r[2], m_theta[2]);
+   R[4] = polar(m_r[4], m_theta[4]);
+   R[5] = R[4] + polar(m_r[5], m_theta[5]);
+   R[3] = polar(m_r[3]-sliderlength/2, m_theta[4])
+          + polar(sliderwidth/2, m_theta[4]-M_PI/2);
+   R[7] = polar(m_r[3]-sliderlength/2, m_theta[4]);
+   R[8] = polar(m_r[3]+sliderlength/2, m_theta[4]);
+   
+   /* display position */
+   fprintf(positionpipe, "#qanimate position data\n");
+   fprintf(positionpipe, "title \"Position of the Whitworth"
+                         " Quick Return Mechanism\"\n\n");
+   fprintf(positionpipe, "fixture\n");
+   fprintf(positionpipe, "groundpin 0 0 %f %f\n\n",
+           real(R[1]), imag(R[1]));
+   fprintf(positionpipe, "joint 0 0 \\\n");
+   fprintf(positionpipe, "ground %f %f %f %f\n\n",
+           real(R[5])-sliderlength, imag(R[5])-sliderwidth/2,
+           real(R[5])+sliderlength, imag(R[5])-sliderwidth/2);
+   fprintf(positionpipe, "link %f %f %f %f \\\n",
+           real(R[1]), imag(R[1]),
+           real(R[2]), imag(R[2]));
+   fprintf(positionpipe, "line 0 0 %f %f \\\n",
+           real(R[7]), imag(R[7]));
+   fprintf(positionpipe, "line %f %f %f %f \\\n",
+           real(R[8]), imag(R[8]),
+           real(R[4]), imag(R[4]));
+   fprintf(positionpipe, "link %f %f %f %f \\\n",
+           real(R[4]), imag(R[4]),
+           real(R[5]), imag(R[5]));
+   fprintf(positionpipe, "rectangle %f %f %f %f angle %f pen red \\\n",
+           real(R[3]), imag(R[3]), sliderlength, 
+           sliderwidth, M_RAD2DEG(m_theta[4]));
+   fprintf(positionpipe, "rectangle %f %f %f %f angle %f pen blue \\\n",
+           real(R[5])-sliderlength/2, imag(R[5])-sliderwidth/2,
+           sliderlength, sliderwidth, 0.0);
+   fprintf(positionpipe, "text %f %f \"01\" \\\n",
+           -sliderwidth/8, -sliderwidth);
+   fprintf(positionpipe, "text %f %f \"02\" \\\n",
+           (abs(m_theta[2]) > M_PI/2 && abs(m_theta[2]) < 3*M_PI/2)
+              ?(real(R[1])+sliderwidth):(real(R[1])-sliderwidth),imag(R[1]));
+   fprintf(positionpipe, "text %f %f \"A\" \\\n",
+           real(polar(m_r[3]+sliderlength/4,m_theta[4])
+              +polar(sliderwidth, -M_PI/2+m_theta[4])),
+           imag(polar(m_r[3]+sliderlength/4,m_theta[4])
+              +polar(sliderwidth, -M_PI/2+m_theta[4])));
+   fprintf(positionpipe, "text %f %f \"B\" \\\n",
+           real(R[4]), imag(R[4])+sliderwidth/2);
+   fprintf(positionpipe, "text %f %f \"r_5\" \\\n",
+           real(R[4]+polar(m_r[5]/2, m_theta[5])
+              +polar(sliderwidth/2, M_PI/2+m_theta[5])),
+           imag(R[4]+polar(m_r[5]/2, m_theta[5])
+              +polar(sliderwidth/2, M_PI/2+m_theta[5])));
+   fprintf(positionpipe, "text %f %f \"6\" \\\n",
+           real(R[5]), imag(R[5])+sliderwidth);
+   fprintf(positionpipe, "text %f %f \"r_4\" \\\n",
+           real(polar(sliderwidth, m_theta[4])
+              +polar(sliderwidth/2, m_theta[4]-M_PI/2)),
+           imag(polar(sliderwidth, m_theta[4])
+              +polar(sliderwidth/2, m_theta[4]-M_PI/2)));
+   fprintf(positionpipe, "text %f %f \"r_2\"\n\n",
+           real(R[1]+polar(m_r[2]/3, m_theta[2])
+              +polar(sliderwidth/3, M_PI/2-m_theta[2])),
+           imag(R[1]+polar(m_r[2]/3, m_theta[2])
+              +polar(sliderwidth/3, M_PI/2-m_theta[2])));
+
+   if(outputType == QANIMATE_OUTPUTTYPE_FILE)
+   {
+      fclose(positionpipe);
+   }
+   else if(outputType == QANIMATE_OUTPUTTYPE_DISPLAY)
+   {
+      fclose(positionpipe);
+      qanimate $QnmFileName
+      remove(QnmFileName);
+      free(QnmFileName);
+   }
+}
+
+/***************************************************************
+ * animation()
+ *
+ * This function will write a file that can be run with
+ * qanimate to display an animation of the mechanism as
+ * the second link is rotated.
+ ***************************************************************/
+void CQuickReturn::animation(...)
+{
+   complex R[1:8];
+   double interval = 2*M_PI / (m_numpoints);
+   double sliderlength = m_r[4] / 8;
+   double sliderwidth = sliderlength / 2;
+   double max, min;
+   int i;
+   char *QnmFileName;
+   int outputType = QANIMATE_OUTPUTTYPE_DISPLAY; // default display
+   FILE *animationpipe;
+   va_list ap;
+   int vacount;
+
+   va_start(ap, VA_NOARG);
+   vacount = va_count(ap);
+   if(vacount > 0)
+      outputType = va_arg(ap, int);
+   if(outputType == QANIMATE_OUTPUTTYPE_STREAM)
+      animationpipe = stdout;
+   else
+   {
+      if(outputType == QANIMATE_OUTPUTTYPE_FILE)
+         QnmFileName = va_arg(ap, char*);
+      else
+         QnmFileName = tempnam("C:/Windows/temp", NULL);
+      fprintf(stdout, "file name %s\n", QnmFileName);
+      // Try to open output file
+      if(!(animationpipe = fopen(QnmFileName, "w")))
+      {
+         fprintf(stderr, "animation(): unable to open output file '%s'\n", QnmFileName); 
+         return;
+      }
+   }
+   va_end(ap);
+
+   sliderRange(max, min);
+   R[1] = polar(m_r[1], m_theta[1]);
+
+   /* Write header part */
+   fprintf(animationpipe, "#qanimate animation data\n");
+   fprintf(animationpipe, "title \"Animation of the Whitworth Quick"
+                          " Return Mechanism\"\n\n");
+   fprintf(animationpipe, "fixture\n");
+   fprintf(animationpipe, "groundpin 0 0 %f %f\n\n",
+           real(R[1]), imag(R[1]));
+   fprintf(animationpipe, "ground %f %f %f %f \n\n"
+           ,min-sliderlength
+           ,m_r[7]-sliderwidth/2
+           ,max+sliderlength
+           ,m_r[7]-sliderwidth/2);
+   fprintf(animationpipe, "animate restart\n");
+
+   for(i=0; i < m_numpoints; i++)
+   {
+      // Call calcPosition() to calculate everything
+      calcPosition(i*interval*m_omega[2]/abs(m_omega[2]));
+
+      // Create complex to make it easier to use
+      R[2] = R[1] + polar(m_r[2], m_theta[2]);
+      R[4] = polar(m_r[4], m_theta[4]);
+      R[5] = R[4] + polar(m_r[5], m_theta[5]);
+      R[3] = polar(m_r[3]-sliderlength/2, m_theta[4])
+             + polar(sliderwidth/2, m_theta[4]-M_PI/2);
+      R[7] = polar(m_r[3]-sliderlength/2, m_theta[4]);
+      R[8] = polar(m_r[3]+sliderlength/2, m_theta[4]);
+
+      /* Write animation part */
+      fprintf(animationpipe, "link %f %f %f %f \\\n",
+              real(R[1]), imag(R[1]),
+              real(R[2]), imag(R[2]));
+      fprintf(animationpipe, "line 0 0 %f %f \\\n",
+              real(R[7]), imag(R[7]));
+      fprintf(animationpipe, "line %f %f %f %f \\\n",
+              real(R[8]), imag(R[8]),
+              real(R[4]), imag(R[4]));
+      fprintf(animationpipe, "link %f %f %f %f \\\n",
+              real(R[4]), imag(R[4]),
+              real(R[5]), imag(R[5]));
+      fprintf(animationpipe, "rectangle %f %f %f %f angle %f pen red \\\n",
+              real(R[3]), imag(R[3]), sliderlength, sliderwidth, 
+              M_RAD2DEG(m_theta[4]));
+      fprintf(animationpipe, "rectangle %f %f %f %f angle %f pen blue \\\n",
+              real(R[5])-sliderlength/2, imag(R[5])-sliderwidth/2,
+              sliderlength, sliderwidth, 0.0);
+      fprintf(animationpipe, "joint 0 0 \\\n");
+      fprintf(animationpipe, "stopped \\\n");
+      fprintf(animationpipe, "text %f %f \"01\" \\\n",
+              -sliderwidth/8, -sliderwidth);
+      fprintf(animationpipe, "text %f %f \"02\" \\\n",
+              (abs(m_theta[2]) > M_PI/2 && abs(m_theta[2]) < 3*M_PI/2)
+                 ?(real(R[1])+sliderwidth):(real(R[1])-sliderwidth),imag(R[1]));
+      fprintf(animationpipe, "text %f %f \"A\" \\\n",
+              real(polar(m_r[3]+sliderlength/4,m_theta[4])
+                 +polar(sliderwidth, -M_PI/2+m_theta[4])),
+              imag(polar(m_r[3]+sliderlength/4,m_theta[4])
+                 +polar(sliderwidth, -M_PI/2+m_theta[4])));
+      fprintf(animationpipe, "text %f %f \"B\" \\\n",
+              real(R[4]), imag(R[4])+sliderwidth/2);
+      fprintf(animationpipe, "text %f %f \"r_5\" \\\n",
+              real(R[4]+polar(m_r[5]/2, m_theta[5])
+                 +polar(sliderwidth/2, M_PI/2+m_theta[5])),
+              imag(R[4]+polar(m_r[5]/2, m_theta[5])
+                 +polar(sliderwidth/2, M_PI/2+m_theta[5])));
+      fprintf(animationpipe, "text %f %f \"6\" \\\n",
+              real(R[5]), imag(R[5])+sliderwidth);
+      fprintf(animationpipe, "text %f %f \"r_4\" \\\n",
+              real(polar(sliderwidth, m_theta[4])
+                 +polar(sliderwidth/2, m_theta[4]-M_PI/2)),
+              imag(polar(sliderwidth, m_theta[4])
+                 +polar(sliderwidth/2, m_theta[4]-M_PI/2)));
+      fprintf(animationpipe, "text %f %f \"r_2\"\n\n",
+              real(R[1]+polar(m_r[2]/3, m_theta[2])
+                 +polar(sliderwidth/3, M_PI/2-m_theta[2])),
+              imag(R[1]+polar(m_r[2]/3, m_theta[2])
+                 +polar(sliderwidth/3, M_PI/2-m_theta[2])));
+   }
+
+   if(outputType == QANIMATE_OUTPUTTYPE_FILE)
+   {
+      fclose(animationpipe);
+   }
+   else if(outputType == QANIMATE_OUTPUTTYPE_DISPLAY)
+   {
+      fclose(animationpipe);
+      qanimate $QnmFileName
+      remove(QnmFileName);
+      free(QnmFileName);
+   }
+}

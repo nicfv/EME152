@@ -61,7 +61,8 @@ int main(void) {
     printf("groundpin 0 0\n");
     // min(array) returns the minimum value in that array
     // max(array) returns the maximum value in that array
-    printf("ground %lf %lf %lf %lf\n", min(r4) /*- slider.width/2*/, r[1] - slider.height/2, max(r4) /*+ slider.width/2*/, r[1] - slider.height/2);
+    //                                      x1                              y1                      x2                          y2
+    printf("ground %lf %lf %lf %lf\n", min(r4) - slider.width/2, r[1] - slider.height/2, max(r4) + slider.width/2, r[1] - slider.height/2);
     printf("animate restart\n");
     for(i = 0; i < NUMPOINTS; i++) {
         L[1] = polar(r[1], theta[1]);
