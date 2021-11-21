@@ -18,18 +18,18 @@ int main(void) {
         r7 = 5.0/100;
     double theta1 = deg2rad(90.0),
         theta2 = deg2rad(30.0),
-        theta3, theta4;
+        theta4, theta5;
 
     qr.uscUnit(unit);
     qr.setLinks(r1, r2, r4, r5, r7, theta1);
     qr.setNumPoints(numpoints);
     
     /* Problem 5 */
-    theta3 = qr.getAngPos(theta2, 3);
-    theta4 = qr.getAngPos(theta2, 4);
+    theta4 = qr.getAngPos(theta2, QR_LINK_4);
+    theta5 = qr.getAngPos(theta2, QR_LINK_5);
     r6 = qr.sliderPos(theta2);
-    printf("Theta3 = %lf rad = %lf deg\n", theta3, rad2deg(theta3));
     printf("Theta4 = %lf rad = %lf deg\n", theta4, rad2deg(theta4));
+    printf("Theta5 = %lf rad = %lf deg\n", theta5, rad2deg(theta5));
     printf("r6 = %lf m\n", r6);
     /* Part (a) */
     qr.displayPosition(theta2, QANIMATE_OUTPUTTYPE_DISPLAY);
