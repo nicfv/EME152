@@ -93,10 +93,10 @@ int main(void) {
     printf("Solution 2:\n  alpha [rad/s^2] = %9.4lf  Ap = (%9.4lf, %9.4lf) [m/s^2] = %9.4lf [m/s^2]\n", alpha_2, real(Ap_2), imag(Ap_2), cabs(Ap_2));
 
     //// Part (f) ////
+    fourbar.setAngularVel(omega_1[2]);
 	fourbar.plotAngularVels(&plot1, 1);
 	fourbar.plotAngularVels(&plot2, 2);
     // Calculate the t array
-    fourbar.setAngularVel(theta_1[2]);
     fourbar.angularPoss(1, t, theta3, theta4);
     for (i = 0; i < NUMPOINTS; i++) {
         // Need to re-calculate for every theta2
