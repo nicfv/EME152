@@ -1,4 +1,4 @@
 Circuit 1: theta2 = -0.015833, theta 3 = 0.841961
 Circuit 2: theta2 = 0.539432, theta 3 = -0.318362
-Circuit 1: p = complex(11.065491,4.301049)
-Circuit 2: p = complex(11.859985,4.911180)
+Circuit 1: p = complex(6.659926,5.879577)
+Circuit 2: p = complex(11.363445,6.296990)

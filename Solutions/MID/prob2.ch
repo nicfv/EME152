@@ -21,8 +21,8 @@ int main() {
     printf("Circuit 1: theta2 = %f, theta 3 = %f\n", theta_1[2], theta_1[3]);
     printf("Circuit 2: theta2 = %f, theta 3 = %f\n", theta_2[2], theta_2[3]);
     
-    p1 = polar(r2, theta_1[2]) + polar(rp, theta_1[3] + theta_1[2]);
-    p2 = polar(r2, theta_2[2]) + polar(rp, theta_2[3] + theta_2[2]);
+    p1 = polar(r2, theta_1[2]) + polar(rp, theta_1[3] + beta);
+    p2 = polar(r2, theta_2[2]) + polar(rp, theta_2[3] + beta);
     
     printf("Circuit 1: p = %f\n", p1);
     printf("Circuit 2: p = %f\n", p2);
